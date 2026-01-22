@@ -12,17 +12,21 @@
             font-family: "PingFang SC", "Microsoft Yahei", sans-serif;
         }
         body {
-            /* 锁定壁纸比例，固定不滚动 */
-            background: url('https://p3-sign.douyinpic.com/tos-cn-i-0813c000-ce/osEaxTpAiv1iGLBIAzPQBPAAnMxvAAQ8lw2Aq~tplv-dy-aweme-images-ds-rs-v1:1440:2560:q80.jpeg?lk3s=138a59ce&x-expires=1771675200&x-signature=M4TgR%2F7hL4IUGCqopqMd3W%2BTn28%3D&from=327834062&s=PackSourceEnum_AWEME_DETAIL&se=false&sc=image&biz_tag=aweme_images&l=202601222008048E3D115CAB42C6642803') no-repeat center center fixed;
-            background-size: cover;
-            background-attachment: fixed; /* 锁定壁纸不跟随滚动 */
-            padding: 15px;
-            overflow-x: hidden;
-        }
-        .container {
-            max-width: 500px;
-            margin: 0 auto;
-        }
+   background: url('https://p3-sign.douyinpic.com/tos-cn-i-0813c000-ce/osEaxTpAiv1iGLBIAzPQBPAAnMxvAAQ8lw2Aq~tplv-dy-aweme-images-ds-rs-v1:1440:2560:q80.jpeg?lk3s=138a59ce&x-expires=1771675200&x-signature=M4TgR%2F7hL4IUGCqopqMd3W%2BTn28%3D&from=327834062&s=PackSourceEnum_AWEME_DETAIL&se=false&sc=image&biz_tag=aweme_images&l=202601222008048E3D115CAB42C6642803') no-repeat center center;
+   background-size: cover;
+   background-attachment: fixed;
+   background-position: fixed; /* 新增强锁定位 */
+   position: fixed;top:0;left:0;right:0;bottom:0; /* 锁死body区域不滚动 */
+   padding: 15px;
+   overflow-x: hidden;
+ }
+ .container {
+   max-width: 500px;
+   margin: 0 auto;
+   height: 100vh;
+   overflow-y: auto; /* 新增，只让内容滚动 */
+ }
+ }
         .title {
             text-align: center;
             font-size: 22px;
@@ -271,7 +275,7 @@
 </head>
 <body>
     <div class="container">
-        <div class="title">学生信息查询（教师专用）</div>
+        <div class="title">信息查询</div>
         
         <div class="search-container">
             <div class="search-box">
