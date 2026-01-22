@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>信息查询</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "PingFang SC", "Microsoft Yahei", sans-serif;
+        }
+        body {
+            /* 锁定壁纸比例，固定不滚动 */
+            background: url('https://p3-sign.douyinpic.com/tos-cn-i-0813c000-ce/osEaxTpAiv1iGLBIAzPQBPAAnMxvAAQ8lw2Aq~tplv-dy-aweme-images-ds-rs-v1:1440:2560:q80.jpeg?lk3s=138a59ce&x-expires=1771675200&x-signature=M4TgR%2F7hL4IUGCqopqMd3W%2BTn28%3D&from=327834062&s=PackSourceEnum_AWEME_DETAIL&se=false&sc=image&biz_tag=aweme_images&l=202601222008048E3D115CAB42C6642803') no-repeat center center fixed;
+            background-size: cover;
+            background-attachment: fixed; /* 锁定壁纸不跟随滚动 */
+            padding: 15px;
+            overflow-x: hidden;
+        }
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        .title {
+            text-align: center;
+            font-size: 22px;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 20px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        .search-container {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        .search-box {
+            display: flex;
+            gap: 10px;
+        }
+        #nameInput {
+            flex: 1;
+            height: 48px;
+            padding: 0 15px;
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 10px;
+            font-size: 17px;
+            outline: none;
+            background-color: rgba(255,255,255,0.2);
+            color: #ffffff;
+            backdrop-filter: blur(8px);
+        }
+        #nameInput::placeholder {
+            color: rgba(255,255,255,0.7);
+        }
+        #nameInput:focus {
+            border-color: rgba(66, 153, 225, 0.5);
+            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+        }
+        #queryBtn {
+            width: 85px;
+            height: 48px;
+            background-color: rgba(66, 153, 225, 0.8);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 17px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            backdrop-filter: blur(8px);
+        }
+        #queryBtn:hover {
+            background-color: rgba(49, 130, 206, 0.9);
+        }
+        .suggest-list {
+            position: absolute;
+            top: 55px;
+            left: 0;
+            right: 0;
+            background: rgba(255,255,255,0.2);
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            z-index: 100;
+            max-height: 200px;
+            overflow-y: auto;
+            display: none;
+            backdrop-filter: blur(8px);
+        }
+        .suggest-item {
+            padding: 12px 15px;
+            font-size: 16px;
+            color: #ffffff;
+            cursor: pointer;
+        }
+        .suggest-item:hover {
+            background-color: rgba(255,255,255,0.3);
+        }
+        /* 模糊搜索结果容器 */
+        .search-result-container {
+            margin-bottom: 20px;
+        }
+        .result-count {
+            text-align: center;
+            color: rgba(255,255,255,0.8);
+            font-size: 16px;
+            margin-bottom: 15px;
+        }
+        .result-card {
+            background-color: rgba(255,255,255,0.2);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 15px;
+            backdrop-filter: blur(8px);
+        }
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            font-size: 16px;
+            color: #ffffff;
+        }
+        .result-item:last-child {
+            border-bottom: none;
+        }
+        .label {
+            color: rgba(255,255,255,0.8);
+            font-weight: 500;
+        }
+        .value.sex {
+            color: #a5f3fc;
+        }
+        .value.constellation {
+            color: #c4b5fd;
+        }
+        .value.address {
+            color: #fcd34d;
+        }
+        .value.idcard {
+            color: #fda4af;
+        }
+        .history-section {
+            margin-top: 25px;
+        }
+        .history-title {
+            font-size: 17px;
+            color: rgba(255,255,255,0.9);
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .clear-history {
+            font-size: 14px;
+            color: rgba(159, 122, 234, 0.9);
+            cursor: pointer;
+        }
+        .history-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .history-item {
+            padding: 6px 12px;
+            background-color: rgba(240, 248, 251, 0.2);
+            color: #ffffff;
+            border-radius: 20px;
+            font-size: 15px;
+            cursor: pointer;
+            backdrop-filter: blur(8px);
+        }
+        .history-item:hover {
+            background-color: rgba(232, 244, 248, 0.3);
+        }
+        .loading, .error {
+            text-align: center;
+            padding: 25px;
+            color: rgba(255,255,255,0.8);
+            font-size: 16px;
+        }
+        .error {
+            color: rgba(229, 62, 62, 0.9);
+        }
+        .status-card {
+            background-color: rgba(255,255,255,0.2);
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 20px;
+            backdrop-filter: blur(8px);
+        }
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            font-size: 15px;
+            color: #ffffff;
+        }
+        .status-value.normal {
+            color: #4ade80;
+        }
+        .status-value.location {
+            color: #fcd34d;
+        }
+        .status-value.count {
+            color: #a5f3fc;
+        }
+        /* 实时时间样式 */
+        .real-time {
+            text-align: center;
+            font-size: 14px;
+            color: rgba(255,255,255,0.6); /* 淡色字体 */
+            padding: 8px 0;
+            margin: 8px 0;
+        }
+        .popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+            backdrop-filter: blur(4px);
+        }
+        .popup-box {
+            background-color: rgba(255,255,255,0.9);
+            border-radius: 12px;
+            padding: 20px;
+            width: 80%;
+            max-width: 400px;
+            text-align: center;
+        }
+        .popup-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #ef4444;
+            margin-bottom: 15px;
+        }
+        .popup-content {
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .popup-content .red-name {
+            color: #ef4444;
+            font-weight: bold;
+        }
+        .popup-close {
+            padding: 8px 20px;
+            background-color: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .legal-tip {
+            text-align: center;
+            font-size: 14px;
+            color: #ef4444;
+            font-weight: bold;
+            margin-top: 10px;
+            padding: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="title">学生信息查询（教师专用）</div>
+        
+        <div class="search-container">
+            <div class="search-box">
+                <input type="text" id="nameInput" placeholder="输入姓名">
+                <button id="queryBtn">查询</button>
+            </div>
+            <div class="suggest-list" id="suggestList"></div>
+        </div>
+        
+        <!-- 模糊搜索结果容器 -->
+        <div id="resultArea" class="loading">请输入姓名查询</div>
+        
+        <div class="history-section">
+            <div class="history-title">
+                <span>最近查询</span>
+                <span class="clear-history" id="clearHistory">清空</span>
+            </div>
+            <div class="history-list" id="historyList"></div>
+        </div>
+
+        <div class="status-card" id="statusCard">
+            <div class="status-item">
+                <span>标准化程序</span>
+                <span id="apiStatus" class="status-value normal">检测中...</span>
+            </div>
+            <div class="status-item">
+                <span>所在位置</span>
+                <span id="ipLocation" class="status-value location">加载中...</span>
+            </div>
+            <div class="status-item">
+                <span>年段在读人数</span>
+                <span class="status-value count">347人</span>
+            </div>
+            <!-- 实时北京时间 -->
+            <div class="real-time" id="realTime">加载中...</div>
+            <div class="legal-tip">
+                开发者提醒:所有数据不可用于违法案件，违者自行承担法律责任!
+            </div>
+        </div>
+    </div>
+
+    <div id="popup" class="popup-overlay" style="display: none;">
+        <div class="popup-box">
+            <div class="popup-title">禁止查询</div>
+            <div class="popup-content">
+                <span class="red-name">王嘉启</span>，无法查询
+            </div>
+            <button id="popupClose" class="popup-close">确定</button>
+        </div>
+    </div>
+
+    <script>
+        // 完整学生姓名+身份证号数据（347人）
+        const studentData = {
+            "艾鑫凤": "360430200905101120",
+            "蔡宏扬": "350581200907192218",
+            "蔡如莹": "350581200904022029",
+            "戴永烨": "350581200810272553",
+            "戴子昭": "360421200905103218",
+            "管慧贤": "330881200902223727",
+            "郭钰荣": "441523200812027024",
+            "黄书贺": "350581200901172515",
+            "黄诗婷": "350524200906016522",
+            "黄紫": "350581200903263541",
+            "林锦辉": "350581200901052521",
+            "李尚玮": "350581200901263011",
+            "李炫楷": "350581200907180831",
+            "刘馨颍": "350581200809172221",
+            "李伊晴": "350582200901305847",
+            "李怡沁": "350302200907281329",
+            "施君瑶": "350581200903112524",
+            "施嘉怡": "350581200809164723",
+            "尚妤欣": "511381200811300886",
+            "王寀洢": "350581200908051820",
+            "王阳阳": "340825200908280424",
+            "许珈荧": "350581200810232527",
+            "谢心盈": "350581200904064720",
+            "谢艺涵": "350581200906051528",
+            "杨宜霏": "350581200907142528",
+            "钟皓杨": "350624200906172512",
+            "张秋云": "350524200907061026",
+            "张依娜": "350581200809193524",
+            "陈珊珊": "522731200901190087",
+            "蔡少铤": "350581200805282239",
+            "傅炜翔": "35058120090822201X",
+            "关嘉欣": "340421200904215222",
+            "黄俊荣": "350583200907235436",
+            "洪嘉翔": "350581200905271537",
+            "黄珊妮": "35052420081111156X",
+            "何亚橦": "350581200906111084",
+            "李静渝": "350581200903300824",
+            "刘芮伶": "341282200812137928",
+            "柳雯鑫": "360602200903020525",
+            "卢玮滢": "350581200902261827",
+            "雷祖鸿": "350583200904211834",
+            "邱煜祺": "350622200908293016",
+            "宋雨彤": "360781200905143642",
+            "吴俊娴": "360430200810170924",
+            "王文君": "350581200902192526",
+            "徐智霞": "360681200808062220",
+            "杨扬": "511923200907161963",
+            "邹佳彤": "36102520090129172X",
+            "朱佳滢": "361128200806297546",
+            "朱芯谊": "350628200906130561",
+            "周子奥": "429006200812181515",
+            "张智轩": "350581200811182517",
+            "蔡柏权": "S333562(5)",
+            "蔡恩琪": "S274104(2)",
+            "蔡方颖": "1494816(0)",
+            "蔡鸿斌": "S231833(6)",
+            "蔡瀚梁": "F293990(4)",
+            "蔡佳霖": "S223171(0)",
+            "蔡峻楠": "S276327(5)",
+            "蔡佳怡": "S279701(3)",
+            "蔡妍妍": "S299540(0)",
+            "陈智濠": "S254424(7)",
+            "陈子颖": "S277057(3)",
+            "黄金源": "S316781(1)",
+            "黄佩珊": "S230180(8)",
+            "黄镇濠": "S290510(A)",
+            "李光铭": "S275050(5)",
+            "刘铭祺": "S298263(5)",
+            "林雯雯": "S317601(2)",
+            "林玺铭": "H04965431",
+            "卢韵蓉": "S229720(7)",
+            "李梓涵": "S299290(8)",
+            "邱桦炜": "S333472(6)",
+            "施芷萱": "S333212(A)",
+            "涂嘉琪": "S252321(5)",
+            "王彬彬": "S276742(4)",
+            "王瀚森": "S277499(4)",
+            "王嘉劲": "S266605(9)",
+            "王佳霖": "S226699(9)",
+            "吴炬燊": "HO4997727",
+            "王婧雯": "S201247(4)",
+            "王庆楠": "S275701(1)",
+            "吴锶琪": "S230683(4)",
+            "王熙楠": "S276348(8)",
+            "许铎潇": "350582200709044018",
+            "许凯桢": "S291330(7)",
+            "郑煜森": "S298717(3)",
+            "曾国哲": "350581200809011532",
+            "蔡俊锋": "350581200811043058",
+            "陈佳航": "35058120080908351X",
+            "蔡一铭": "350581200901092216",
+            "池梓歆": "330381200906101420",
+            "蔡政熠": "350581200901052214",
+            "段典超": "360428200907081838",
+            "傅铭鸿": "350581200906244514",
+            "郭明哲": "430723200904110050",
+            "辜依晨": "350104200810200141",
+            "胡昌锦": "36112820081029791X",
+            "黄加铠": "350581200811193558",
+            "黄楷铭": "350305200901215653",
+            "黄薇如": "350583200811278327",
+            "金志博": "341024200908258519",
+            "林恩沛": "350181200901030195",
+            "刘浩林": "360723200906214111",
+            "李斯澎": "350581200906254712",
+            "刘三榮": "350581200809212211",
+            "刘钰": "360681200901095318",
+            "刘杨": "420323200908017239",
+            "林雨晨": "350581200810181520",
+            "卢毓才": "350581200812060538",
+            "林桢雄": "350581200906293519",
+            "毛志彬": "350583200810181013",
+            "潘子扬": "350583200903153417",
+            "邱宇涵": "350581200906144513",
+            "邱煜琳": "350581200908274717",
+            "邱远荣": "360428200810031877",
+            "邱子洋": "350581200907174319",
+            "苏瀚翔": "361127200901273810",
+            "佘松龄": "350581200901090827",
+            "吴浩阳": "350524200812185595",
+            "王炫晓": "350581200901082536",
+            "王熠豪": "350524200810315595",
+            "王子豪": "340826200905234058",
+            "许静瑶": "350581200810071022",
+            "虞可为": "350581200908032216",
+            "叶仕楷": "35058320090813133X",
+            "杨子江": "340321200811085611",
+            "周恩民": "35052520090314359X",
+            "周恩民": "350424200901016915",
+            "张佳鑫": "350627200810191515",
+            "郑佳宜": "350581200902153543",
+            "朱凯诺": "341622200811232152",
+            "张天宇": "420607200903044111",
+            "詹新杰": "350524200906188332",
+            "艾敬宇": "361023200903282533",
+            "陈定豪": "510722200811297470",
+            "陈福彬": "350823200901124612",
+            "陈佳成": "350505200811267012",
+            "陈文思鹭": "421302200712100013",
+            "陈玉薇": "350881200908030364",
+            "陈煜扬": "350581200905312239",
+            "蔡章昊": "350581200906283011",
+            "代世豪": "522401200903239214",
+            "付源泽": "360428200812056218",
+            "郭铭锴": "350581200811271819",
+            "郭锜晓": "350581200901071837",
+            "龚梓霖": "350581200810080818",
+            "胡鸿铭": "350524200903031057",
+            "洪佳雯": "350581200907261527",
+            "胡龙涛": "36112820081104501X",
+            "黄思凯": "35062820090410401X",
+            "洪梓涛": "350581200904131516",
+            "江雨萱": "360430200811233341",
+            "旷俊辉": "520222200904120193",
+            "柯志霖": "350582200904064815",
+            "林秉铮": "36103020090101001X",
+            "卢东耀": "360730200908021712",
+            "李健豪": "500102200811061337",
+            "刘锦娜": "360430200902173321",
+            "刘铭涛": "350581200902142270",
+            "李羽薇": "350581200902160540",
+            "刘状元": "360730200907312315",
+            "邱东宏": "350581200908184711",
+            "邱锦程": "350581200810074717",
+            "秦泉": "340825200903075077",
+            "施润奇": "350581200811130514",
+            "施志善": "350582200902065398",
+            "王镔锴": "350581200904074312",
+            "吴刚": "421126200803165795",
+            "吴泉霖": "350581200908113534",
+            "王启楠": "350581200810081810",
+            "吴松晓": "350581200811153513",
+            "王韵媛": "35032220090614482X",
+            "许世杭": "350581200810184510",
+            "熊燕斌": "35042820080923451X",
+            "杨佳琪": "350581200802243541",
+            "邹弘森": "522725200908217812",
+            "张检枫": "350783200905032513",
+            "张佳豪": "340826200903211418",
+            "张泽平": "360830200811051718",
+            "陈海昕": "350581200907221023",
+            "蔡涵羽": "350581200902062211",
+            "蔡锦汇": "35058120090712221X",
+            "陈嘉欣": "450881200903012048",
+            "蔡锦银": "350581200903072227",
+            "陈一帆": "361024200812283617",
+            "陈禹涵": "511923200812160909",
+            "蔡煜坤": "350581200906232214",
+            "陈怡婷": "350322200906306526",
+            "陈泳鑫": "350524200811255571",
+            "陈志强": "340406200707011614",
+            "付文斌": "350430200907152018",
+            "官静怡": "350303200811053520",
+            "龚志城": "350581200812070517",
+            "黄冰冰": "350581200907083548",
+            "黄伟铭": "350581200908163515",
+            "何宇翔": "360781200712015513",
+            "林光堃": "350581200901141014",
+            "卢泓钧": "S229929(3)",
+            "林煌鑫": "350581200811031516",
+            "李俊杰": "341622200808212150",
+            "李文欣": "450324200812093140",
+            "李晓婧": "350581200911101024",
+            "李泽钦": "360830200901012317",
+            "林梓萦": "350526200907163025",
+            "马杰": "431023200902280497",
+            "彭依依": "35058120081116356X",
+            "邱静瑶": "350581200810314725",
+            "邱奕鑫": "350581200812190818",
+            "石燕": "520329200904210105",
+            "施莹琦": "350582200810305040",
+            "覃金婷": "451224200809263028",
+            "王晨怡": "350581200811090524",
+            "王东汉": "350582200903303052",
+            "吴锴达": "350628200906034510",
+            "巫壬辉": "350821200904301239",
+            "吴伟森": "350582200812119313",
+            "王兴航": "350581200907283013",
+            "王小熙": "411381200811264551",
+            "吴怡萱": "350924200902060085",
+            "徐锦萍": "361128200902175346",
+            "徐林堃": "350623200810072713",
+            "徐伊婷": "361127200812214544",
+            "姚思妃": "360302200903242543",
+            "杨钰莹": "350524200908026820",
+            "周建荣": "36112720090824115X",
+            "张家欣": "341622200809225367",
+            "朱家贤": "360730200905202315",
+            "郑少杰": "350525200812126217",
+            "张煊玮": "350581200802264318",
+            "蔡宏达": "35058120081207151X",
+            "蔡鸿鑫": "350581200904043014",
+            "陈泓鑫": "350581200812191036",
+            "陈铭雅": "330381200901112921",
+            "蔡炜杰": "350581200908022210",
+            "陈子豪": "350582200809089352",
+            "邓国强": "360730200810010636",
+            "邓明进": "350525200810216251",
+            "龚靖雯": "350581200901130526",
+            "郭谈博": "341622200808255396",
+            "高甜甜": "510525200907100124",
+            "胡佩瑶": "350424200810316429",
+            "黄腾沅": "350628200905164014",
+            "李东城": "350581200811241812",
+            "刘佳合": "341225200811055114",
+            "雷均浩": "350783200908047016",
+            "李金泽": "23030320090121401X",
+            "刘新玉": "360825200811253618",
+            "刘歆杳": "410222200810054521",
+            "卢烨萱": "350581200905164520",
+            "林盈盈": "440804200906021623",
+            "莫智伟": "350581200903093538",
+            "邱柏泰": "350581200903234716",
+            "邱培杰": "361127200809139133",
+            "邱诗涵": "350581200908174345",
+            "邱燊衍": "350581200810074311",
+            "邱孜镧": "350581200810184326",
+            "施子恒": "350582200812096019",
+            "王辰栋": "350722200905245719",
+            "吴建辉": "350581200810143516",
+            "吴俊瀚": "36062220090117661X",
+            "王锦毅": "350524200808255634",
+            "王炜权": "350582200812309336",
+            "吴鑫豪": "361128200811142071",
+            "汪晓宇": "429006200902203925",
+            "徐风扬": "360981200901161019",
+            "许金涛": "350582200903115019",
+            "许童": "361029200904120323",
+            "熊欣悦": "350424200810215820",
+            "徐羽桐": "340826200906213013",
+            "徐自豪": "361002200904104016",
+            "章晋贤": "361029200908130617",
+            "张淼": "360830200904221712",
+            "郑瑞琅": "350425200811170333",
+            "周昇烨": "350581200901152215",
+            "敖天宇": "420982200909308137",
+            "蔡淇栎": "350581200907062018",
+            "蔡佑铖": "350581200804131535",
+            "蔡煜辉": "350581200903242214",
+            "段宇田": "430224200811060356",
+            "傅锦宏": "350524200901101015",
+            "傅艳辉": "360502200904074618",
+            "傅怡彤": "350581200809151826",
+            "龚瀚霖": "35058220090804001X",
+            "郭嘉霖": "35058120081110181X",
+            "葛芸茜": "360731200809106522",
+            "黄辉鸿": "35032220090528381X",
+            "何君民": "360724200902095510",
+            "胡晞彤": "350581200812264522",
+            "何祥中": "360782200908066212",
+            "黄梓泓": "350581200904262524",
+            "姜梓锋": "350521200903272011",
+            "柯秀婷": "35052420090713554X",
+            "李何擎宇": "350430200907040518",
+            "李健": "360732200808165156",
+            "龙建霆": "430523200903092910",
+            "梁诗涵": "320322200907304025",
+            "林鑫如": "350581200901054041",
+            "黎政杰": "522229200810030011",
+            "梅瀛心": "500102200907039062",
+            "倪振峰": "350581200812030531",
+            "施东俊": "350582200901055016",
+            "盛丹妮": "350581200812252521",
+            "施文钧": "350581200901073525",
+            "施源溢": "350581200908044516",
+            "田荣新": "350425200811140759",
+            "王婧": "350424200907066921",
+            "王景灿": "350581200908101816",
+            "王进豪": "350581200812221813",
+            "温丽昕": "350424200811245829",
+            "汪玉涛": "350722200904103911",
+            "谢宸霖": "35058120090320201X",
+            "许金晨": "350581200907021515",
+            "许景鑫": "350582200812144017",
+            "谢俊宇": "350581200811243578",
+            "姚嘉乐": "35058320090613801X",
+            "杨铭浩": "340406200901312015",
+            "余子豪": "361127200810103832",
+            "杨泽楠": "350581200809152511",
+            "张书恒": "350581200812073515",
+            "翟震东": "371621200902222012",
+            "蔡柏煜": "350581200908312218",
+            "蔡家炜": "141022200908200093",
+            "蔡瑾娴": "350581200809141820",
+            "蔡锦云": "350581200904273020",
+            "陈凌枫": "500230200908111194",
+            "蔡培森": "350581200809091034",
+            "蔡锶怡": "350581200811171527",
+            "陈浠": "350628200906202019",
+            "曹伊瑾": "361127200812044514",
+            "程云南": "350724200812080030",
+            "陈雅婷": "350524200905125567",
+            "胡安睿": "420981200907250019",
+            "黄逸凡": "36102920090131451X",
+            "瞿光晨": "500102200811272695",
+            "江雅怡": "35062420090319402X",
+            "李傲": "500235200805212736",
+            "梁安棋": "350525200905034055",
+            "林竣": "350623200906265739",
+            "李俊宏": "35060220090103151X",
+            "刘楷洋": "350581200904112219",
+            "李炜柏": "350581200809070815",
+            "李新龙": "350581200904291536",
+            "林心旻": "350581200908073528",
+            "刘乙铄": "411525200905126934",
+            "欧阳诗博": "429004200905240227",
+            "邱煌桥": "350581200902214350",
+            "邱诗涵": "350581200903224323",
+            "邱鑫鸿": "350581200906292217",
+            "苏棋峰": "350504200906201036",
+            "石青龙": "340826200906022217",
+            "孙映": "522428200903254617",
+            "沈永明": "361025200903173815",
+            "王海宾": "350581200906103519",
+            "王晋恩": "361127200812172217",
+            "王嘉启": "410522200906050150",
+            "王珊珊": "350581200809233020",
+            "王震山": "350302200902082419",
+            "许俊颖": "450321200712051016",
+            "杨景垚": "350524200812104556",
+            "杨主航": "350521200906163515",
+            "张朝博": "360430200803211118",
+            "郑前芳": "341623200906051545",
+            "周荣煜": "350581200904122214",
+            "张轩瑞": "360730200901201411",
+            "邹依蓓": "511623200908216085",
+            "周子铭": "350581200903132218",
+            "张泽旭": "330382200901186214",
+            "訾紫嫣": "341622200807212183",
+            "曾宝仪": "350504200902061064",
+            "蔡婧涵": "350581200901212222",
+            "蔡炬响": "350581200804252214",
+            "蔡靖仪": "350582200810205365",
+            "曾念博": "350881200812012014",
+            "陈其煊": "350425200903242613",
+            "陈溯": "350322200903106510",
+            "曾韦维": "522636200903230114",
+            "陈熠杰": "350628200901077036",
+            "陈紫涵": "350581200903062221",
+            "高思铌": "350581200811243527",
+            "郭婉滢": "350581200906010523",
+            "龚钰堂": "350581200803090866",
+            "侯皓元": "35058320090711663X",
+            "韩佳嘉": "361127200810109126",
+            "侯佳凌": "350581200901154528",
+            "黄佳莹": "350305200811202963",
+            "黄静谊": "35030220090705242X",
+            "黄雯银": "350581200901093526",
+            "黄曜东": "350581200908113550",
+            "纪锌颖": "350581200812281824",
+            "柯桢涛": "350582200907059317",
+            "林翠玲": "350623200812235125",
+            "刘建彬": "350525200905236239",
+            "林瑞鑫": "350525200902236612",
+            "赖诗涵": "35062820080726402X",
+            "李婉铷": "350582200811261027",
+            "林文炜": "35052420080906053X",
+            "林星瑶": "350581200901141524",
+            "刘亿馨": "350305200904085620",
+            "李铮滢": "350581200903064729",
+            "欧阳芊芊": "350581200905051825",
+            "邱婧涵": "350581200810092245",
+            "邱诗涵": "350581200906224329",
+            "邱于怀": "350581200906114736",
+            "任家杭": "410823200812060035",
+            "施铭鸿": "350582200907215041",
+            "宋雨晴": "341225200902175525",
+            "吴函政": "350924200810230112",
+            "吴佳丽": "500234200901025440",
+            "吴灵珊": "350802200810167084",
+            "王荣柱": "350581200810262531",
+            "王梓瑶": "350581200810240527",
+            "谢宾谊": "350581200904131524",
+            "许书豪": "350582200901085012",
+            "许馨予": "350581200812051543",
+            "许子淇": "350581200906041047",
+            "姚雅灵": "350524200811230542",
+            "张嘉诚": "350822200810034711",
+            "周基东": "361021200812217514",
+            "张子恩": "361029200810065714",
+            "朱紫凌": "35072220090327572X",
+            "钟子淇": "430621200902220047"
+        };
+        const studentNames = Object.keys(studentData);
+        let queryHistory = JSON.parse(localStorage.getItem('queryHistory')) || [];
+
+        // DOM元素
+        const nameInput = document.getElementById('nameInput');
+        const queryBtn = document.getElementById('queryBtn');
+        const resultArea = document.getElementById('resultArea');
+        const suggestList = document.getElementById('suggestList');
+        const historyList = document.getElementById('historyList');
+        const clearHistory = document.getElementById('clearHistory');
+        const apiStatus = document.getElementById('apiStatus');
+        const ipLocation = document.getElementById('ipLocation');
+        const popup = document.getElementById('popup');
+        const popupClose = document.getElementById('popupClose');
+        const realTime = document.getElementById('realTime');
+
+        // 初始化
+        window.onload = function() {
+            checkIdcardApi();
+            getIpLocation();
+            renderHistory();
+            updateRealTime(); // 初始化实时时间
+            setInterval(updateRealTime, 1000); // 每秒更新时间
+        };
+
+        // 锁定壁纸滚动（防止滑动变动）
+        document.body.style.overflow = 'auto';
+        document.documentElement.style.overflow = 'auto';
+
+        // 实时北京时间更新
+        function updateRealTime() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hour = String(now.getHours()).padStart(2, '0');
+            const minute = String(now.getMinutes()).padStart(2, '0');
+            const second = String(now.getSeconds()).padStart(2, '0');
+            realTime.textContent = `北京时间 ${year}-${month}-${day} ${hour}:${minute}:${second}`;
+        }
+
+        // 检测API状态
+        async function checkIdcardApi() {
+            try {
+                const testId = "410522200906050150";
+                const apiUrl = `https://api.pearktrue.cn/api/sfz/query.php?idcard=${encodeURIComponent(testId)}`;
+                const response = await fetch(apiUrl);
+                const data = await response.json();
+                if (data.code === 200) {
+                    apiStatus.className = "status-value normal";
+                    apiStatus.textContent = "正常*";
+                } else {
+                    apiStatus.className = "status-value normal";
+                    apiStatus.textContent = "异常*";
+                }
+            } catch (e) {
+                apiStatus.className = "status-value normal";
+                apiStatus.textContent = "异常*";
+            }
+        }
+
+        // 获取IP位置
+        async function getIpLocation() {
+            try {
+                const apiUrl = "https://api.pearktrue.cn/api/ip/high/";
+                const response = await fetch(apiUrl);
+                const data = await response.json();
+                if (data.code === 200 && data.data && data.data.detail) {
+                    ipLocation.className = "status-value location";
+                    ipLocation.textContent = data.data.detail;
+                } else {
+                    ipLocation.className = "status-value location";
+                    ipLocation.textContent = "获取失败";
+                }
+            } catch (e) {
+                ipLocation.className = "status-value location";
+                ipLocation.textContent = "获取失败";
+            }
+        }
+
+        // 姓名联想（保留原有功能）
+        nameInput.addEventListener('input', function() {
+            const inputVal = this.value.trim();
+            if (!inputVal) {
+                suggestList.style.display = 'none';
+                return;
+            }
+            const matches = studentNames.filter(name => 
+                name.toLowerCase().includes(inputVal.toLowerCase())
+            );
+            if (matches.length > 0) {
+                let html = '';
+                matches.forEach(name => {
+                    html += `<div class="suggest-item" data-name="${name}">${name}</div>`;
+                });
+                suggestList.innerHTML = html;
+                suggestList.style.display = 'block';
+            } else {
+                suggestList.style.display = 'none';
+            }
+        });
+        suggestList.addEventListener('click', function(e) {
+            const target = e.target.closest('.suggest-item');
+            if (target) {
+                nameInput.value = target.dataset.name;
+                suggestList.style.display = 'none';
+            }
+        });
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.search-container')) {
+                suggestList.style.display = 'none';
+            }
+        });
+
+        // 核心：模糊搜索功能（支持姓氏/部分姓名搜索）
+        queryBtn.addEventListener('click', queryStudent);
+        nameInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') queryStudent();
+        });
+        async function queryStudent() {
+            const inputVal = nameInput.value.trim();
+            resultArea.innerHTML = '<div class="loading">查询中...</div>';
+
+            // 王嘉启禁止查询弹窗
+            if (inputVal === "王嘉启") {
+                popup.style.display = 'flex';
+                resultArea.innerHTML = '<div class="loading">请输入姓名查询</div>';
+                return;
+            }
+
+            if (!inputVal) {
+                resultArea.innerHTML = '<div class="error">请输入学生姓名</div>';
+                return;
+            }
+
+            // 模糊匹配：所有包含输入内容的学生（不区分大小写）
+            const matchedStudents = studentNames.filter(name => 
+                name.toLowerCase().includes(inputVal.toLowerCase())
+            );
+
+            if (matchedStudents.length === 0) {
+                resultArea.innerHTML = '<div class="error">未找到匹配的学生信息</div>';
+                return;
+            }
+
+            // 批量获取学生详细信息
+            let resultHtml = `<div class="search-result-container">
+                                <div class="result-count">找到 ${matchedStudents.length} 条匹配信息</div>`;
+
+            for (const name of matchedStudents) {
+                const idCard = studentData[name];
+                let extraInfo = { sex: '未知', constellation: '未知', address: '未知' };
+                try {
+                    const apiUrl = `https://api.pearktrue.cn/api/sfz/query.php?idcard=${encodeURIComponent(idCard)}`;
+                    const response = await fetch(apiUrl);
+                    const data = await response.json();
+                    if (data.code === 200 && data.data) {
+                        extraInfo = {
+                            sex: data.data.sex || '未知',
+                            constellation: data.data.constellation || '未知',
+                            address: data.data.address || '未知'
+                        };
+                    }
+                } catch (e) {
+                    console.log(`获取${name}信息异常:`, e);
+                }
+
+                // 每个学生独立卡片显示
+                resultHtml += `
+                    <div class="result-card">
+                        <div class="result-item">
+                            <span class="label">姓名</span>
+                            <span class="value">${name}</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="label">身份证</span>
+                            <span class="value idcard">${idCard}</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="label">性别</span>
+                            <span class="value sex">${extraInfo.sex}</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="label">星座</span>
+                            <span class="value constellation">${extraInfo.constellation}</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="label">住址</span>
+                            <span class="value address">${extraInfo.address}</span>
+                        </div>
+                    </div>
+                `;
+            }
+
+            resultHtml += '</div>';
+            resultArea.innerHTML = resultHtml;
+
+            // 单个学生时添加到查询历史
+            if (matchedStudents.length === 1) {
+                addToHistory(matchedStudents[0]);
+            }
+        }
+
+        // 弹窗关闭
+        popupClose.addEventListener('click', function() {
+            popup.style.display = 'none';
+        });
+
+        // 查询记录
+ function addToHistory(name) {
+     queryHistory = queryHistory.filter(item => item !== name);
+     queryHistory.unshift(name);
+     if (queryHistory.length > 10) queryHistory.pop();
+     localStorage.setItem('queryHistory', JSON.stringify(queryHistory));
+     renderHistory();
+ }
+ function renderHistory() {
+     if (queryHistory.length === 0) {
+         historyList.innerHTML = '<span class="history-item" style="color:rgba(255,255,255,0.7);cursor:default;">暂无查询记录</span>';
+         return;
+     }
+     let html = '';
+     queryHistory.forEach(name => {
+         html += `<div class="history-item" data-name="${name}">${name}</div>`;
+     });
+     historyList.innerHTML = html;
+     // 修复：绑定点击事件（完整可运行）
+     document.querySelectorAll('.history-item').forEach(item => {
+         item.addEventListener('click', function() {
+             const targetName = this.getAttribute('data-name');
+             nameInput.value = targetName; // 填充输入框
+             queryStudent(); // 触发查询
+         });
+     });
+ }
+ // 清空查询历史
+ clearHistory.addEventListener('click', function() {
+     queryHistory = [];
+     localStorage.removeItem('queryHistory');
+     renderHistory();
+ });
+ </script>
